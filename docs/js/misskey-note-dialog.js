@@ -225,7 +225,7 @@ button:focus, button:focus img {
     #addListenerEvent(shadow) { // ノートボタンを押したときの動作を実装する
         console.debug(this.shadowRoot)
         //this.shadowRoot.getElementById('misskey-note-button').addEventListener('pointerdown', (event) => {
-        this.shadowRoot.getElementById('misskey-note-button').addEventListener('click', (event)=>{ console.debug('click', event.target); this.#show(event.target) });
+        this.shadowRoot.getElementById('misskey-note-button').addEventListener('click', async(event)=>{ console.debug('click', event.target); await this.#show(event.target) });
         /* clickとあわせて２回発行されてしまう！　もうスマホ側は知らん。
         this.shadowRoot.getElementById('misskey-note-button').addEventListener('pointerdown', (event) => {
             // なぜかthis.#show(event.target)だとフォーカスが当たらない。clickなら成功するがpointerdownだと失敗する理由が不明。なのでもうclickイベントを発火させることにした。
@@ -306,13 +306,14 @@ button:focus, button:focus img {
             }
         });
     }
-    #show(target) {
+    async #show(target) {
         target.classList.add('jump');
         //this.shadowRoot.getElementById('misskey-note-dialog').showModal();
         this.shadowRoot.getElementById('misskey-note-dialog').show();
         const text = this.shadowRoot.getElementById('text');
         console.log(this.shadowRoot.querySelector(`misskey-note-button[text]`))
-        text.innerText = (this.shadowRoot.querySelector(`misskey-note-button[text]`)) ? this.shadowRoot.querySelector(`misskey-note-button[text]`).getAttribute('text') : this.text + '\n' + location.href
+        const address = (window.hasOwnProperty('mpurse')) ? await window.mpurse.getAddress() : ''
+        text.innerText = (this.shadowRoot.querySelector(`misskey-note-button[text]`)) ? this.shadowRoot.querySelector(`misskey-note-button[text]`).getAttribute('text') : this.text + '\n' + address + '\n' + location.href
         this.shadowRoot.getElementById('text').dispatchEvent(new Event('input'))
         console.log(this.shadowRoot.getElementById('text-remaining').innerHTML)
         text.focus();
