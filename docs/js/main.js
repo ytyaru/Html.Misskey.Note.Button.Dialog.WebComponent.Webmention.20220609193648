@@ -13,7 +13,7 @@ window.addEventListener('DOMContentLoaded', async (event) => {
     });
     document.querySelector(`misskey-note-dialog`).addEventListener('note', async(event) => {
         console.debug('note event: ノートしました！', event.detail);
-        const html = new Comment().mastodonResToComment(event.detail.json.createdNote, event.detail.domain)
+        const html = new Comment().misskeyResToComment(event.detail.json.createdNote, event.detail.domain)
         const comment = document.querySelector(`mention-section`).shadowRoot.querySelector(`#web-mention-comment`)
         comment.innerHTML = html + comment.innerHTML
     });
