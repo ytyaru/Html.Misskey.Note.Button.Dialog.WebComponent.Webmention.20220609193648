@@ -12,4 +12,10 @@ class MisskeyApiClient {
         //const params = this._params({text:text})
         //return await this.client.post('notes/create', null, params)
     }
+    async meta(detail=true) {
+        console.debug('----- meta -----')
+        //console.debug(this.i)
+        console.debug(detail)
+        return await this.client.post('meta', null, {detail:detail})
+    }
 }

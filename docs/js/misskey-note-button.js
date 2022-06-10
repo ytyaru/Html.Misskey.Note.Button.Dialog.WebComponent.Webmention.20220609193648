@@ -20,7 +20,8 @@ class MisskeyNoteButton extends HTMLElement {
         shadow.innerHTML = gen.generate()
         this.shadowRoot.querySelector('img').addEventListener('animationend', (e)=>{ e.target.classList.remove('jump'); e.target.classList.remove('flip'); }, false);
         this.#addListenerEvent()
-        this._authorizer = this.#getAuthorizer()
+        this._authorizer = await this.#getAuthorizer()
+        if (!this._authorizer) { return }
         const i = await this._authorizer.redirectCallback().catch(e=>this.#error(e))
         if (i) {
             console.debug('----- 認証リダイレクト後 -----')
@@ -37,9 +38,39 @@ class MisskeyNoteButton extends HTMLElement {
         else if ('ng-msg' === property) { this.ngMsg = newValue}
         else { this[property] = newValue; }
     }
-    #getAuthorizer() { // ミスキーv12.39以降とそれ以前では認証方法が違うため必要。本当はversionをAPIで取得して判定させたかったが、versionを取得できなかったため諦めた。
-        return ('misskey.io' == this.domain) ? new MisskeyAuthorizerV12(this.domain) : new MisskeyAuthorizerV11(this.domain)
+    async #getAuthorizer(domain=null) { // ミスキーv12.39以降はMiAuth、それ以前ならOAuthで認証する
+        console.debug(`----- #getAuthorizer() -----: ${this.domain}`)
+        domain = domain || this.domain
+        if (!domain) { return null }
+        //return ('misskey.io' == domain) ? new MisskeyAuthorizerV12(domain) : new MisskeyAuthorizerV11(domain)
+        const client = new MisskeyApiClient(domain) 
+        const json = await client.meta()
+        console.debug(json)
+        console.debug(json.version)
+        const v = json.version.split('.')
+        const isMiAuth= (12 <= parseInt(v[0]) && 39 <= parseInt(v[1])) 
+        console.debug(`${domain}: ${v}`)
+        console.debug('認証方法:', (isMiAuth) ? 'MiAuth' : 'OAuth')
+        return (isMiAuth) ? new MisskeyAuthorizerV12(domain) : new MisskeyAuthorizerV11(domain)
     }
+
+    /*
+    async #getAuthorizer(domain=null) { // ミスキーv12.39以降はMiAuth、それ以前ならOAuthで認証する
+        console.debug(`----- #getAuthorizer() -----: ${this.domain}`)
+        domain = (domain) ? domain : this.domain
+        if (!this.domain) { return null }
+        //return ('misskey.io' == this.domain) ? new MisskeyAuthorizerV12(this.domain) : new MisskeyAuthorizerV11(this.domain)
+        const client = new MisskeyApiClient(this.domain) 
+        const json = await client.meta()
+        console.debug(json)
+        console.debug(json.version)
+        const v = json.version.split('.')
+        const isMiAuth= (12 <= parseInt(v[0]) && 39 <= parseInt(v[1])) 
+        console.debug(`${this.domain}: ${v}`)
+        console.debug('認証方法:', (isMiAuth) ? 'MiAuth' : 'OAuth')
+        return (isMiAuth) ? new MisskeyAuthorizerV12(this.domain) : new MisskeyAuthorizerV11(this.domain)
+    }
+    */
     #error(e) {
         console.error(e)
         this.#clearSettion()
@@ -77,9 +108,24 @@ class MisskeyNoteButton extends HTMLElement {
         try { return new URL(domain).hostname }
         catch (e) { return domain }
     }
-    #isExistInstance() {
+    async #isExistInstance(domain) {
+        console.debug(`----- #isExistInstance: ${domain} -----`)
+        console.debug(`https://${domain}/`)
         // 入力したドメインが存在するか（リンク切れでないか）
+        //const res = await fetch(`https://${domain}/`)
+        /*
+        const res = await fetch(`https://${domain}/`, {method:'GET'})
+        console.debug(res)
+        console.debug(res.status)
+        console.debug('*************************************')
+        if (200 <= res.status && res.status <= 299) { throw new Error(`サーバにアクセスできません。[${res.status}]\nサーバが存在しないか一時的にダウンしている可能性があります。\n入力したURLやドメイン名に誤りがないか確かめ、時間をおいてもう一度試してください。`) }
+        */
         // 入力したドメインはミスキーのインスタンスか（どうやってそれを判定するか）
+        const client = new MisskeyApiClient(domain) 
+        const json = await client.meta()
+        console.debug(json.version)
+        if (!json || !json.hasOwnProperty('version')) { throw new Error(`指定したURLやドメインはmisskeyのインスタンスでない可能性があります。api/metaリクエストをしても想定した応答が返ってこなかったためです。\n入力したURLやドメイン名がmisskeyのインスタンスであるか確認してください。あるいはmisskeyの仕様変更が起きたのかもしれません。対応したソースコードを書き換えるしかないでしょう。`) }
+        console.debug(`----- ${domain} は正常なmisskeyサーバです -----`)
         return true
     }
     async #note(target) {
@@ -93,6 +139,7 @@ class MisskeyNoteButton extends HTMLElement {
             }
             target.classList.add('jump');
             const domain = (this.domain) ? this.domain : this.#getDomain()
+            await this.#isExistInstance(domain)
             this.domain = domain
             console.debug(domain)
             if (this._client) { // リダイレクト承認済みなら
@@ -100,6 +147,11 @@ class MisskeyNoteButton extends HTMLElement {
                 const res = await this._client.note(this.#getText()).catch(e=>this.#error(e))
                 this.#noteEvent(res)
             } else { // リダイレクト承認していないなら、それをする
+                console.debug('----- リダイレクト承認する -----')
+                if (!this._authorizer) { // インスタンス＝ユーザ入力時
+                    this._authorizer = await this.#getAuthorizer(domain)
+                }
+                console.debug(this._authorizer)
                 await this._authorizer.authorize(this.#getText()).catch(e=>this.#error(e))
             }
         } catch(error) {
