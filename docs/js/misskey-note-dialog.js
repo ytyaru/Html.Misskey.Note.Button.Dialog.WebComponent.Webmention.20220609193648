@@ -223,27 +223,32 @@ button:focus, button:focus img {
         const trB = document.createElement('tr')
         const trD = document.createElement('tr')
         trB.innerHTML += `<td rowspan="2">${remaining.outerHTML}</td>`
-        // ボタン生成
-        const buttons = []
         for (const domain of this.domain) {
             const tdB = document.createElement('td')
             tdB.innerHTML = `<misskey-note-button domain="${domain}"></misskey-note-button>`
             trB.appendChild(tdB)
             const tdD = document.createElement('td')
-            tdD.innerHTML = `<a href="https://${domain}/" title="${domain}">${domain}</a>`
+            tdD.appendChild(this.#makeNewTabLink(`https://${domain}/`, domain, domain))
             trD.appendChild(tdD)
         }
         trB.innerHTML += `<td><misskey-note-button></misskey-note-button></td>`
-        trD.innerHTML += `<td><a href="https://misskey-hub.net/instances.html" title="インスタンス一覧">他</a></td>`
+        trD.innerHTML += '<td>' + this.#makeNewTabLink('https://misskey-hub.net/instances.html', 'インスタンス一覧', '他').outerHTML + '</td>'
         trB.innerHTML += `<td rowspan="2"><button id="misskey-note-dialog-close" title="閉じる"><span>❌</span></button></td>`
         table.appendChild(trB)
         table.appendChild(trD)
-
         form.appendChild(text)
         form.appendChild(table)
-        form.innerHTML += buttons.join('')
         dialog.appendChild(form)
         return dialog
+    }
+    #makeNewTabLink(href, title, content) {
+        const a = document.createElement('a')
+        if (href) { a.setAttribute('href', href) }
+        if (title) { a.setAttribute('title', title) }
+        if (content) { a.innerHTML = content }
+        a.setAttribute('target', '_blank') 
+        a.setAttribute('rel', 'noopener noreferrer')
+        return a
     }
     #addListenerEvent(shadow) { // ノートボタンを押したときの動作を実装する
         console.debug(this.shadowRoot)
