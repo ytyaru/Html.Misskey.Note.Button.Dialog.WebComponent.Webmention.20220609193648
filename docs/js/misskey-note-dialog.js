@@ -79,6 +79,15 @@ class MisskeyNoteDialog extends HTMLElement {
     overflow: visible;
     cursor: pointer;
 }
+.button-table {
+    text-align: center;
+    vertical-align: center;
+}
+#misskey-note-dialog-close, #misskey-note-dialog-close > span {
+    text-align: center;
+    vertical-align: center;
+    font-size: ${this.imgSize}px;
+}
 `
     }
     #cssButton() { return `
@@ -207,17 +216,31 @@ button:focus, button:focus img {
         text.setAttribute('contenteditable', 'true')
         const remaining = document.createElement('span')
         remaining.setAttribute('id', 'text-remaining')
+        remaining.setAttribute('title', '残り字数（インスタンスごとに違うため仮値）')
 
+        const table = document.createElement('table')
+        table.classList.add('button-table')
+        const trB = document.createElement('tr')
+        const trD = document.createElement('tr')
+        trB.innerHTML += `<td rowspan="2">${remaining.outerHTML}</td>`
         // ボタン生成
         const buttons = []
         for (const domain of this.domain) {
-            buttons.push(`<misskey-note-button domain="${domain}"></misskey-note-button>`)
+            const tdB = document.createElement('td')
+            tdB.innerHTML = `<misskey-note-button domain="${domain}"></misskey-note-button>`
+            trB.appendChild(tdB)
+            const tdD = document.createElement('td')
+            tdD.innerHTML = `<a href="https://${domain}/" title="${domain}">${domain}</a>`
+            trD.appendChild(tdD)
         }
-        buttons.push(`<misskey-note-button></misskey-note-button>`)
-        buttons.push(`<button id="misskey-note-dialog-close"><span style="font-size:${this.imgSize}px;">❌</span></button>`)
+        trB.innerHTML += `<td><misskey-note-button></misskey-note-button></td>`
+        trD.innerHTML += `<td><a href="https://misskey-hub.net/instances.html" title="インスタンス一覧">他</a></td>`
+        trB.innerHTML += `<td rowspan="2"><button id="misskey-note-dialog-close" title="閉じる"><span>❌</span></button></td>`
+        table.appendChild(trB)
+        table.appendChild(trD)
 
         form.appendChild(text)
-        form.appendChild(remaining)
+        form.appendChild(table)
         form.innerHTML += buttons.join('')
         dialog.appendChild(form)
         return dialog
